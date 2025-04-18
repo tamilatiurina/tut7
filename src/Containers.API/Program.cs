@@ -1,4 +1,10 @@
+using Containers.Application;
+using Containers.Models;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("universityDatabase");
+builder.Services.AddSingleton<IConrainerService, ContainerService>(containerSrvice => new ContainerService(connectionString));
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -16,6 +22,40 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapGet("/api/containers", (IConrainerService containerService) =>
+{
+    try
+    {
+        return Results.Ok(containerService.GetAllContainers());
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
+});
+
+
+app.MapPost("/api/containers", (IConrainerService containerService, Container container) =>
+{
+    try
+    {
+        var result = containerService.AddContainer(container);
+        if (result is true)
+        {
+            return Results.Created("/api/containers", result);
+        }
+        else
+        {
+            return Results.BadRequest();
+        }
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
+});
+
+app.Run();
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -33,8 +73,7 @@ app.MapGet("/weatherforecast", () =>
             .ToArray();
         return forecast;
     })
-    .WithName("GetWeatherForecast")
-    .WithOpenApi();
+    .WithName("GetWeatherForecast");
 
 app.Run();
 
